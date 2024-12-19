@@ -1,0 +1,63 @@
+import pandas as pd
+
+# Fonction pour charger et préparer les données
+def load_data(file_path):
+    data = pd.read_csv(file_path, encoding='latin1')  # Adapter l'encodage si nécessaire
+    return data
+
+# Fonction pour filtrer les données par enseignant et exclure les modalités Projet et DS
+def filter_data(data, teacher_name):
+    filtered_data = data[
+        (data['Intervenant'].str.contains(teacher_name, na=False, case=False)) &  # Filtre enseignant
+        (~data['Summary'].str.contains("Projet|DS", na=False, case=False))        # Exclure Projet et DS
+    ]
+    return filtered_data
+
+# Fonction pour calculer les heures par modalité
+def calculate_hours(data):
+    data['Duration'] = pd.to_datetime(data['HEnd']) - pd.to_datetime(data['HStart'])
+    data['Hours'] = data['Duration'].dt.total_seconds() / 3600  # Convertir en heures
+    return data
+
+# Fonction pour calculer les heures équivalentes TD
+def calculate_td_equivalent(data):
+    # Ajouter des colonnes pour les heures par modalité
+    data['Hours_CM'] = data['Hours'] * data['Summary'].str.contains("CM", na=False).astype(int)
+    data['Hours_TD'] = data['Hours'] * data['Summary'].str.contains("TD", na=False).astype(int)
+    data['Hours_TP'] = data['Hours'] * data['Summary'].str.contains("TP", na=False).astype(int)
+    
+    # Calculer les heures équivalentes TD
+    data['TD_Equivalent'] = (data['Hours_CM'] * 1.5) + data['Hours_TD'] + (data['Hours_TP'] * 0.66)
+    return data
+
+# Fonction pour afficher le bilan final
+def display_summary(data):
+    module_summary = data.groupby('Summary').agg({
+        'Hours_CM': 'sum',
+        'Hours_TD': 'sum',
+        'Hours_TP': 'sum',
+        'TD_Equivalent': 'sum'
+    }).reset_index()
+    
+    total_td_hours = module_summary['TD_Equivalent'].sum()
+    return module_summary, total_td_hours
+
+# Fonction principale
+def main():
+    file_path = input("Entrez le chemin du fichier CSV : ")
+    teacher_name = input("Entrez le nom de l'enseignant : ")
+    
+    data = load_data(file_path)
+    filtered_data = filter_data(data, teacher_name)
+    processed_data = calculate_hours(filtered_data)
+    final_data = calculate_td_equivalent(processed_data)
+    
+    module_summary, total_td_hours = display_summary(final_data)
+    
+    print("\nBilan des heures par module :")
+    print(module_summary)
+    print(f"\nTotal des heures équivalent TD : {total_td_hours:.2f} heures")
+
+# Exécuter le script
+if __name__ == "__main__":
+    main()
