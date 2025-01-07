@@ -67,7 +67,7 @@ def display_service(teacher_name, file_path):
 
 def main():
     file_path = 'calendar1912.csv'
-    teacher_name = input("Nom de l'intervenant: ")
+    teacher_name = 'GIRAUD NADINE'
     display_service(teacher_name, file_path)
 
 if __name__ == "__main__":
